@@ -4,7 +4,7 @@
 
 **What Siri should have been.**
 
-*Your Mac's AI — persistent memory, system control, voice, and autonomous tasks. All running locally. All yours.*
+*Built for Mac. Powered by Claude. Persistent memory, system control, voice, and autonomous tasks — all running locally. All yours.*
 
 <br/>
 
