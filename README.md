@@ -271,4 +271,4 @@ Optional:
 
 ## License
 
-MIT — fork it, own it, ship it.
+[Elastic License 2.0 (ELv2)](LICENSE) — free to use and modify. You may not sell it or offer it as a managed service without permission.
