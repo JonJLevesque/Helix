@@ -1,17 +1,20 @@
 # Example: Content Loop
 
-An anonymized real-world example of an autonomous content marketing loop built on Helix.
+A real-world content marketing loop, stripped to the reusable patterns.
 
-## What It Does
+## What It Demonstrates
 
-This loop runs every 30 minutes and:
-- Posts helpful, genuine comments on Reddit as a persona representing your business
-- Tracks karma and engagement metrics
-- Respects daily rate limits and subreddit cooldowns
-- Switches between SOCIAL mode (posting 8am–10pm) and BUILD mode (research, drafting)
-- Optionally tracks Gumroad revenue and publishes Beehiiv newsletter drafts
+- **Time-of-day mode switching** — ACTIVE hours (8am–10pm) for distribution, BUILD hours (off-peak) for research and drafting
+- **State file management** — queue, daily caps, last action tracking, all in a single markdown file the agent reads and rewrites each tick
+- **One-action-per-tick discipline** — the loop picks the single highest-priority item and does only that
+- **Revenue tracking** — optional Gumroad API integration to surface sales data each tick
+- **Newsletter publishing** — Beehiiv API integration, always publishing as `draft` for human review before send
+- **Engagement log** — every distribution action appended to `memory/engagement-log.json`
+- **Escalation pattern** — blockers that need human input go to `agents/messages/pending-tasks.json`, never block the tick
 
-This is the pattern used in production. Anonymized for reuse.
+## What You Plug In
+
+The **DISTRIBUTION** section of `prompt-template.sh` is intentionally left as a scaffold. Fill it in with however you actually publish content — your own platform API, a CMS, email, wherever. The loop architecture works the same regardless.
 
 ---
 
@@ -20,10 +23,9 @@ This is the pattern used in production. Anonymized for reuse.
 | File | Purpose |
 |------|---------|
 | `prompt-template.sh` | Loop prompt — reads state, defines rules, runs the agent |
-| `persona.md` | The voice and persona your Reddit account uses — create this yourself |
-| `state.md` | Current state: queue, karma, last actions, backlog |
-| `run.sh` | Entry point (symlink to or copy `services/template-loop/run.sh`) |
-| `README.md` | This file |
+| `persona.md` | The voice your content uses — create this yourself |
+| `state.md` | Current queue, daily counts, last actions — initialize this |
+| `run.sh` | Entry point (copy of `services/template-loop/run.sh`) |
 
 ---
 
@@ -32,28 +34,17 @@ This is the pattern used in production. Anonymized for reuse.
 ### 1. Configure `.env`
 
 ```bash
-REDDIT_USERNAME=your_reddit_username
-REDDIT_PASSWORD=your_reddit_password
-BUSINESS_URL=https://yourbusiness.com
-GUMROAD_PRODUCT_URL=https://yourstore.gumroad.com/l/your-product
-NEWSLETTER_URL=https://yournewsletter.beehiiv.com/subscribe
-
 # Optional — remove if not using
 GUMROAD_ACCESS_TOKEN=your_token
 BEEHIIV_API_KEY=your_key
 BEEHIIV_PUB_ID=your_pub_id
+BUSINESS_URL=https://yourbusiness.com
+NEWSLETTER_URL=https://yournewsletter.beehiiv.com/subscribe
 ```
 
 ### 2. Write your persona
 
-Create `examples/content-loop/persona.md`. This is the character your Reddit account plays. It should include:
-- Name and backstory (real enough to be credible, generic enough to protect privacy)
-- Expertise and experience
-- Voice and tone guidelines
-- Topics to engage with
-- Topics to avoid
-
-See `config/example-persona.md` for a template.
+Create `examples/content-loop/persona.md`. Define the voice, expertise, and tone your content uses. See `config/example-persona.md` for a template.
 
 ### 3. Initialize state
 
@@ -66,56 +57,33 @@ Create `examples/content-loop/state.md`:
 - Last run: [never]
 - Last action: [none]
 - Last result: [none]
-- Mode: SOCIAL
-- Comments today: 0 (resets midnight PST)
-- Posts today: 0 (resets midnight PST)
-- Karma: [check manually]
+- Mode: BUILD
+- Published today: 0 (resets midnight)
 
-## Active Queue
-- [ ] Find 3 active threads in r/[your-niche] about [your-topic]
-- [ ] Draft comment for r/[your-niche] thread: [topic]
+## Queue
+- [ ] Research: find top questions in [your niche] this week
+- [ ] Draft newsletter issue #1 — topic: [your topic]
 
-## Subreddit Cooldowns
-(none yet)
-
-## Self-Extension Ideas
-- Expand to r/[new-subreddit] once karma > 50
+## Backlog
+- Expand to [new channel] once newsletter hits 100 subscribers
 ```
 
-### 4. Load the loop
-
-Copy the template plist and customize:
+### 4. Load into launchd
 
 ```bash
 cp config/com.helix.template-loop.plist ~/Library/LaunchAgents/com.helix.content-loop.plist
-```
-
-Edit the plist — change `template-loop` to `content-loop`, update paths, set `StartInterval` to `1800` (30 minutes).
-
-```bash
+# Edit: change template-loop → content-loop, update paths, set StartInterval
 launchctl load ~/Library/LaunchAgents/com.helix.content-loop.plist
-launchctl list | grep helix
 ```
 
 ---
 
-## How It Runs
+## Platform Compliance Note
 
-Each tick:
-1. launchd fires `run.sh`
-2. `run.sh` sources `prompt-template.sh` → builds `$LOOP_PROMPT`
-3. Calls `claude --print --dangerously-skip-permissions "$LOOP_PROMPT"`
-4. Claude reads state, picks one action, executes it via MCP tools, updates state
-5. Writes log to `agents/logs/`, exits
-
-You check in on it via logs or by asking Claude in-session: "what did the content loop do last tick?"
+When building loops that publish content or interact with online platforms, check those platforms' terms of service and API policies. Use official APIs where available, respect rate limits, and disclose AI involvement where required. The loop framework is neutral — what you do with it is your responsibility.
 
 ---
 
-## Tips from Production
+## Full Loop Guide
 
-- **Karma is the bottleneck early on.** Focus on 2-3 subreddits where you can add genuine value. Comments on rising posts (sorted by NEW) compound fastest.
-- **One action per tick.** The agent gets distracted if you ask it to do too much. Strict single-action rule prevents this.
-- **State file is sacred.** The loop reads it every tick to understand what's been done. Keep it clean and up to date.
-- **4-hour subreddit cooldown is real.** Reddit will shadowban fast if you comment in the same sub repeatedly. The cooldown tracking in state.md prevents this.
-- **BUILD mode is underrated.** Night ticks where it can't post? Perfect time to draft 3 comments for the queue, research new subreddits, or write a newsletter draft.
+→ [docs/LOOPS-GUIDE.md](../../docs/LOOPS-GUIDE.md)
